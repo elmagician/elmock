@@ -1,0 +1,9 @@
+README.md
+pyproject.toml
+setup.cfg
+setup.py
+src/elmock/__init__.py
+src/elmock.egg-info/PKG-INFO
+src/elmock.egg-info/SOURCES.txt
+src/elmock.egg-info/dependency_links.txt
+src/elmock.egg-info/top_level.txt

@@ -1,0 +1,18 @@
+Metadata-Version: 2.1
+Name: elmock
+Version: 0.0.1
+Summary: A simple package to allow dynamic mocking class definition.
+Home-page: https://github.com/elmagician/elmock
+Author: Titouan FREVILLE
+Author-email: titouan.freville@gmail.com
+License: UNKNOWN
+Project-URL: Bug Tracker, https://github.com/elmagician/elmock/issues
+Description: # pymock
+        A simple python package to help dynamic mock class creation.
+        
+Platform: UNKNOWN
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
