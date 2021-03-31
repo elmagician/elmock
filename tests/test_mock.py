@@ -1,95 +1,9 @@
-# elmock
-
-![CI Status](https://github.com/github/docs/actions/workflows/main.yml/badge.svg?branch=main)
-[![Coverage Status](https://coveralls.io/repos/github/elmagician/elmock/badge.svg?branch=main)](https://coveralls.io/github/elmagician/elmock?branch=main)
-
-A simple python package to help dynamic mock class creation. This package is inspired
-by [golang testify/mock tool](https://github.com/stretchr/testify).
-
-## Install
-
-- `pip install elmock`
-- `pipenv install --dev elmock`
-
-## How to use
-
-### Create you mock instance
-
-To create a new mocked instance, you just need to create your class and inherit from `elmock.Mock` one.
-
-Then implement function you need to mock with their correct signature and call class method: `execute` with the method
-name and arguments.
-
-Execute will then look for correct method call and return or raise expected result when called.
-
-When no calls matched provided arguments, explicit errors are raises to indicate witch method call failed, and the
-arguments passed to call.
-
-```python
-from elmock import Mock
-from typing import Any
-
-
-class MockedInstance(Mock):
-    def my_method(self, arg1: str, arg2: Any, kwarg1: bool = False, kwarg2: Any = None) -> Any:
-        return self.execute('my_method', arg1, arg2, kwarg1=kwarg1, kwarg2=kwarg2)
-```
-
-### Use mocked instance in test
-
-#### Expect mock
-
-While using your mocked instance, you will have to tell witch method are expected to be called. To do so, you'll have to
-use the `on` method.
-
-`on` takes the method name as a string then the arguments and named arguments expected to be passed. It then returns a
-MockedCall
-
-#### Configure MockedCall
-
-After `on` method is called, you'll need to configure return or raises values. You will also be able to indicate an
-expected number of call.
-
-- `returns`: set return value for call. You can provide anything you wish, but it has to be a single value. /!\ call is
-  destructive: all previous raises or returns values will be overwritten.
-- `raises`: set exception to raise. /!\call is destructive: all previous raises or returns values will be overwritten.
-- `once`: indicates call is expected once.
-- `twice`: indicates call is expected twice.
-- `times(X)`: indicates call is expected X times.
-
-#### Full filled assertions
-
-While previous steps garantie a maximum amount of called and ensure mock returned correct value when expected, it does
-not ensure every mock defines was called or if it was really called X time.
-
-To do so, you can use:
-
-- `assert_full_filled` on the mocked class. It will raise a `NotFullFilled` exception if calls are found who where
-  either not called or called lesser than expected.
-- `called` on any MockedCall. It will check if call was used.
-- `full_filled` on any MockedCall. It will check if call was used the expected times.
-
-#### Reset
-
-To avoid border effects between test or if you wish to clean up mocks declared in a test, you can call `reset` method.
-Best way to ensure it is done within each test case is:
-
-```python
-@pytest.fixture(autouse=True)
-def __cleanup_mocks(tmpdir):
-    yield
-    mocked.reset()
-```
-
-## Full example
-
-```python
 from typing import Any
 
 import pytest
 
-from elmock import Mock, UnexpectedMethod
-from elmock.exception import UnexpectedArguments, UnexpectedCall
+from src.elmock import Mock, UnexpectedMethod
+from src.elmock.exception import NotFullFilled, UnexpectedArguments, UnexpectedCall
 
 
 class Mocker(Mock):
@@ -159,16 +73,66 @@ class TestMock:
             assert mocked_call.full_filled()
 
 
-    @pytest.mark.skip
     class TestRepeatControl:
         def test_should_limit_once(self):
             mocked_call = mocked.on('test_no_args_no_return').once()
             mocked.test_no_args_no_return()
+
             with pytest.raises(UnexpectedCall):
                 mocked.test_no_args_no_return()
 
             assert mocked_call.called()
             assert mocked_call.full_filled()
+
+        def test_should_limit_twice(self):
+            mocked_call = mocked.on('test_no_args_no_return').twice()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+
+            with pytest.raises(UnexpectedCall):
+                mocked.test_no_args_no_return()
+
+            assert mocked_call.called()
+            assert mocked_call.full_filled()
+
+        def test_should_limit_x_times(self):
+            mocked_call = mocked.on('test_no_args_no_return').times(5)
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+
+            with pytest.raises(UnexpectedCall):
+                mocked.test_no_args_no_return()
+
+            assert mocked_call.called()
+            assert mocked_call.full_filled()
+
+        def test_full_filled_should_raise_if_not_full(self):
+            call = mocked.on('test_no_args_no_return').times(5)
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+
+            assert call.full_filled() is False
+            with pytest.raises(NotFullFilled):
+                mocked.assert_full_filled()
+
+            mocked.reset()
+
+        def test_full_filled_should_be_ok_with_correct_x_times(self):
+            call = mocked.on('test_no_args_no_return').times(4)
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+            mocked.test_no_args_no_return()
+
+            assert call.full_filled() is True
+            mocked.assert_full_filled()
+
+            mocked.reset()
 
 
     class TestMissUsageExceptions:
@@ -185,5 +149,3 @@ class TestMock:
             with pytest.raises(UnexpectedArguments):
                 mocked.test_no_return('test', 'fun')
             assert mocked_call.called() is False
-
-```

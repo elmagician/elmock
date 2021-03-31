@@ -4,10 +4,15 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+pydantic = "*"
 
 [dev-packages]
 build = "*"
 twine = "*"
+pytest = "*"
+coverage = "*"
+pylama = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.9"

@@ -1,0 +1,45 @@
+name: audit with tests and lint
+on:
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'setup.cfg'
+
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+    paths-ignore:
+      - '**.md'
+      - 'pyproject.toml'
+      - 'setup.py'
+      - 'setup.cfg'
+
+jobs:
+  test:
+    name: lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: install dependencies
+        run: pip3 install pipenv && pipenv install --dev
+
+      - name: lint
+        run: pipenv run pylama main.py src/*
+
+      - name: test
+        run: pipenv run coverage run --source=src -m pytest tests
+
+      - name: Coveralls
+        uses: AndreMiras/coveralls-python-action@v20201129
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          parallel: false
+          flag-name: Unit Test
