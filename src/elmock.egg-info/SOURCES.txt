@@ -3,6 +3,7 @@ pyproject.toml
 setup.cfg
 setup.py
 src/elmock/__init__.py
+src/elmock/exception.py
 src/elmock/mocker.py
 src/elmock.egg-info/PKG-INFO
 src/elmock.egg-info/SOURCES.txt

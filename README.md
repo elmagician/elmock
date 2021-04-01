@@ -1,7 +1,8 @@
 # elmock
 
-![CI Status](https://github.com/github/docs/actions/workflows/main.yml/badge.svg?branch=main)
+![CI Status](https://github.com/elmagician/elmock/actions/workflows/main.yaml/badge.svg?branch=main)
 [![Coverage Status](https://coveralls.io/repos/github/elmagician/elmock/badge.svg?branch=main)](https://coveralls.io/github/elmagician/elmock?branch=main)
+[![PyPI version](https://badge.fury.io/py/elmock.svg)](https://badge.fury.io/py/elmock)
 
 A simple python package to help dynamic mock class creation. This package is inspired
 by [golang testify/mock tool](https://github.com/stretchr/testify).
