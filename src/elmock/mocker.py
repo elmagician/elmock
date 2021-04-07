@@ -10,7 +10,6 @@ class Mock:
     Mock provides structures and methods to manage your mocked instance.
     """
 
-
     class Call:
         class NotFullFilled(BaseModel):
             method: str
@@ -18,7 +17,6 @@ class Mock:
             kwargs: dict[str, Any]
             expected: int
             called: int
-
 
         """
         Call represent a mocked call.
@@ -160,7 +158,6 @@ class Mock:
 
             return self.__return_value
 
-
     __calls: dict[str, List[Call]] = {}
 
     @classmethod
@@ -232,6 +229,3 @@ class Mock:
 
         if incomplete:
             raise NotFullFilled(incomplete)
-
-####
-# mock.on('smtg', 'arg1', 'arg2', kwarg1='data', kwarg2='smtgelse').returns()
