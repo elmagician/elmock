@@ -1,5 +1,4 @@
 [run]
-omit = *test*
 relative_files = True
 
 [report]

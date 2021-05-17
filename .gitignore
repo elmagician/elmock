@@ -2,6 +2,9 @@
 build
 dist
 __pycache__
-.coverage
+*coverage*
+!.coveragerc
 covhtml
 htmlcov
+venv
+.pytest_cache

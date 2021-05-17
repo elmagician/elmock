@@ -1,0 +1,15 @@
+pydantic
+
+[dev]
+build
+black
+bandit
+coverage
+faker
+flake8
+freezegun
+isort
+mypy
+pytest
+twine
+yoyo-migrations

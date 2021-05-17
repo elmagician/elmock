@@ -114,9 +114,8 @@ class Mock:
             methods.
             """
             return (
-                    (self.__calls_expected == self.__infinite_calls and self.called)
-                    or self.__nb_calls == self.__calls_expected
-            )
+                self.__calls_expected == self.__infinite_calls and self.called
+            ) or self.__nb_calls == self.__calls_expected
 
         def _not_full_filled(self) -> NotFullFilled:
             return self.NotFullFilled(
@@ -127,10 +126,10 @@ class Mock:
                 expected=self.__calls_expected,
             )
 
-        def __allowed(self) -> bool:
+        def _allowed(self) -> bool:
             return (
-                    self.__calls_expected == self.__infinite_calls or
-                    self.__nb_calls < self.__calls_expected
+                self.__calls_expected == self.__infinite_calls
+                or self.__nb_calls < self.__calls_expected
             )
 
         def _match(self, method: str, args: Tuple[any], kwargs: dict) -> bool:
@@ -142,13 +141,15 @@ class Mock:
                     return False
 
             for key, arg in kwargs.items():
+                if key not in self.__kwargs and arg is None:
+                    continue
                 if arg != self.__kwargs[key]:
                     return False
 
             return True
 
         def _execute(self):
-            if not self.__allowed():
+            if not self._allowed():
                 raise UnexpectedCall(self.__method, *self.__args, **self.__kwargs)
 
             self.__nb_calls += 1
@@ -192,9 +193,15 @@ class Mock:
 
         known_mocks = cls.__calls[method]
 
-        for mock_calls in known_mocks:
-            if mock_calls._match(method, args, kwargs):
-                return mock_calls
+        last_known = None
+        for mock_call in known_mocks:
+            if mock_call._match(method, args, kwargs):
+                last_known = mock_call
+                if mock_call._allowed():
+                    return mock_call
+
+        if last_known is not None:
+            return last_known
 
         raise UnexpectedArguments(method, args, kwargs)
 
@@ -222,10 +229,9 @@ class Mock:
         """
         incomplete: List[Mock.Call.NotFullFilled] = []
         for calls in cls.__calls.values():
-            incomplete.extend([
-                call._not_full_filled()
-                for call in calls if not call.full_filled()
-            ])
+            incomplete.extend(
+                [call._not_full_filled() for call in calls if not call.full_filled()]
+            )
 
         if incomplete:
             raise NotFullFilled(incomplete)
