@@ -1,23 +1,18 @@
-name: audit with tests and lint
+name: audit
 on:
   push:
+    branches:
+      - main
     paths-ignore:
-      - '**.md'
-      - 'pyproject.toml'
-      - 'setup.py'
-      - 'setup.cfg'
-
+      - "**.md"
   pull_request:
-    types: [ opened, synchronize, reopened ]
+    types: [opened, synchronize, reopened]
     paths-ignore:
-      - '**.md'
-      - 'pyproject.toml'
-      - 'setup.py'
-      - 'setup.cfg'
+      - "**.md"
 
 jobs:
-  test:
-    name: lint and test
+  lint:
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: checkout
@@ -26,16 +21,49 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: "3.9"
 
       - name: install dependencies
-        run: pip3 install pipenv && pipenv install --dev
+        run: make setup_dev
 
       - name: lint
-        run: pipenv run pylama main.py src/*
+        run: make lint
 
-      - name: test
-        run: pipenv run coverage run --source=src -m pytest tests
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+
+      - name: install dependencies
+        run: make setup_dev
+
+      - name: bandit
+        run: make bandit-ci
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.9"
+
+      - name: install dependencies
+        run: make setup_dev
+
+      - name: testing
+        run: make cover
 
       - name: Coveralls
         uses: AndreMiras/coveralls-python-action@v20201129

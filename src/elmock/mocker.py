@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
@@ -25,15 +25,15 @@ class Mock:
         __no_calls = 0
 
         def __init__(self, method: str, *args, **kwargs):
-            self.__method = method
-            self.__args = args
-            self.__kwargs = kwargs
+            self.__method: str = method
+            self.__args: Tuple = args
+            self.__kwargs: Dict = kwargs
 
-            self.__return_value = None
-            self.__raises = None
+            self.__return_value: Any = None
+            self.__raises: Optional[Exception] = None
 
-            self.__nb_calls = 0
-            self.__calls_expected = Mock.Call.__infinite_calls
+            self.__nb_calls: int = 0
+            self.__calls_expected: int = Mock.Call.__infinite_calls
 
         def once(self):
             """
@@ -114,8 +114,10 @@ class Mock:
             methods.
             """
             return (
-                self.__calls_expected == self.__infinite_calls and self.called
-            ) or self.__nb_calls == self.__calls_expected
+                self.__calls_expected == self.__infinite_calls  # type: ignore
+                and self.called
+                or self.__nb_calls == self.__calls_expected
+            )
 
         def _not_full_filled(self) -> NotFullFilled:
             return self.NotFullFilled(
@@ -132,7 +134,7 @@ class Mock:
                 or self.__nb_calls < self.__calls_expected
             )
 
-        def _match(self, method: str, args: Tuple[any], kwargs: dict) -> bool:
+        def _match(self, method: str, args: Tuple, kwargs: dict) -> bool:
             if not self.__method == method:  # pragma: no-cover
                 return False
 
@@ -187,7 +189,7 @@ class Mock:
         cls.__calls = {}
 
     @classmethod
-    def __retrieve_call(cls, method: str, args: Tuple[Any], kwargs: dict) -> Call:
+    def __retrieve_call(cls, method: str, args: Tuple, kwargs: dict) -> Call:
         if method not in cls.__calls:
             raise UnexpectedMethod(method)
 

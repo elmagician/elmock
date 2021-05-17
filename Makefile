@@ -30,8 +30,8 @@ test:
 	pytest -x .
 
 lint:
-	flake8 main.py app tests
-	mypy main.py app tests
+	flake8 src tests
+	mypy src
 
 cover:
 	coverage run --source=src -m pytest -xv .
