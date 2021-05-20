@@ -24,7 +24,7 @@ jobs:
           python-version: "3.9"
 
       - name: install dependencies
-        run: make setup_dev
+        run: make install_dev
 
       - name: lint
         run: make lint
@@ -42,7 +42,7 @@ jobs:
           python-version: "3.9"
 
       - name: install dependencies
-        run: make setup_dev
+        run: make install_dev
 
       - name: bandit
         run: make bandit-ci
@@ -60,7 +60,7 @@ jobs:
           python-version: "3.9"
 
       - name: install dependencies
-        run: make setup_dev
+        run: make install_dev
 
       - name: testing
         run: make cover
