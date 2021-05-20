@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: elmock
-Version: 1.0.1
+Version: 1.0.1.post5
 Summary: A simple package to allow dynamic mocking class definition.
 Home-page: https://github.com/elmagician/elmock
 Author: Titouan FREVILLE

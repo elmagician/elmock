@@ -8,3 +8,4 @@ covhtml
 htmlcov
 venv
 .pytest_cache
+.vscode

@@ -13,9 +13,11 @@ setup_venv:
 	. venv/bin/activate
 
 setup_dev:
-	python3.9 -m venv venv
-	. venv/bin/activate
-	pip install -e ".[dev]"
+	( \
+		python3.9 -m venv venv ; \
+		. venv/bin/activate ; \
+		pip install -e ".[dev]" ;\
+	)
 
 setup: 
 	python3.9 -m venv venv
