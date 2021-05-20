@@ -10,20 +10,28 @@ install:
 
 setup_venv:
 	python3.9 -m venv venv
-	. venv/bin/activate
 
-setup_dev:
+setup_dev: setup_venv
 	( \
-		python3.9 -m venv venv ; \
 		. venv/bin/activate ; \
 		pip install -e ".[dev]" ;\
 	)
 
-setup: 
-	python3.9 -m venv venv
-	. venv/bin/activate
-	pip install .
+setup: setup_venv
+	( \
+		. venv/bin/activate ; \
+		pip install . ;\
+	)
 
+
+####################
+# Tasks       	   #
+####################
+build: setup.py
+	python -m build
+
+release: dist
+	twine upload --skip-existing dist/*
 
 ####################
 # Testing   	   #
