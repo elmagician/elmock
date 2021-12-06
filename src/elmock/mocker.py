@@ -1,8 +1,14 @@
+from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel
 
-from .exception import NotFullFilled, UnexpectedArguments, UnexpectedCall, UnexpectedMethod
+from .exception import (
+    NotFullFilled,
+    UnexpectedArguments,
+    UnexpectedCall,
+    UnexpectedMethod,
+)
 
 
 class Mock:
@@ -10,11 +16,23 @@ class Mock:
     Mock provides structures and methods to manage your mocked instance.
     """
 
+    class ParameterMatcher(ABC):
+        @staticmethod
+        @abstractmethod
+        def validate(parameter: Any) -> bool:
+            """Validate parameter against some rules."""
+            raise NotImplementedError()
+
+    class ANY(ParameterMatcher):
+        @staticmethod
+        def validate(_):
+            return True
+
     class Call:
         class NotFullFilled(BaseModel):
             method: str
             args: List[Any]
-            kwargs: dict[str, Any]
+            kwargs: Dict[str, Any]
             expected: int
             called: int
 
@@ -139,13 +157,23 @@ class Mock:
                 return False
 
             for i, arg in enumerate(args):
-                if arg != self.__args[i]:
+                expected = self.__args[i]
+
+                if isinstance(expected, Mock.ParameterMatcher):
+                    if not expected.validate(arg):
+                        return False
+                elif arg != expected:
                     return False
 
             for key, arg in kwargs.items():
                 if key not in self.__kwargs and arg is None:
                     continue
-                if arg != self.__kwargs[key]:
+
+                expected = self.__kwargs[key]
+                if isinstance(expected, Mock.ParameterMatcher):
+                    if not expected.validate(arg):
+                        return False
+                elif arg != self.__kwargs[key]:
                     return False
 
             return True

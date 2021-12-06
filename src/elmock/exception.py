@@ -5,12 +5,16 @@ class UnexpectedMethod(Exception):
 
 class UnexpectedArguments(Exception):
     def __init__(self, method: str = "undefined", *args, **kwargs):
-        self.message = f"Method {method} did not expected to be called with {args}, {kwargs}"
+        self.message = (
+            f"Method {method} did not expected to be called with {args}, {kwargs}"
+        )
 
 
 class UnexpectedCall(Exception):
     def __init__(self, method: str, *args, **kwargs):
-        self.message = f"Call to method {method} with arguments {args}, {kwargs} was not expected"
+        self.message = (
+            f"Call to method {method} with arguments {args}, {kwargs} was not expected"
+        )
 
 
 class NotFullFilled(Exception):
