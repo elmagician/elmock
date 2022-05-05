@@ -1,5 +1,6 @@
+import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Pattern, Tuple
 
 from pydantic import BaseModel
 
@@ -21,12 +22,30 @@ class Mock:
         @abstractmethod
         def validate(parameter: Any) -> bool:
             """Validate parameter against some rules."""
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no-cover
 
-    class ANY(ParameterMatcher):
+    class _ANY(ParameterMatcher):
         @staticmethod
         def validate(_):
             return True
+
+    @staticmethod
+    def AnyTyped(expected_types: Tuple) -> ParameterMatcher:
+        @staticmethod  # type: ignore
+        def validate(parameter: Any) -> bool:
+            return isinstance(parameter, expected_types)
+
+        return type("AnyTyped", (Mock.ParameterMatcher,), {"validate": validate})()
+
+    @staticmethod
+    def AnyStrMatching(regex: str | Pattern) -> ParameterMatcher:
+        @staticmethod  # type: ignore
+        def validate(parameter: Any) -> bool:
+            return re.match(regex, str(parameter)) is not None
+
+        return type("AnyTyped", (Mock.ParameterMatcher,), {"validate": validate})()
+
+    ANY = _ANY()
 
     class Call:
         class NotFullFilled(BaseModel):
@@ -156,27 +175,50 @@ class Mock:
             if not self.__method == method:  # pragma: no-cover
                 return False
 
-            for i, arg in enumerate(args):
-                expected = self.__args[i]
+            args_to_check_in_kwargs = []
+            unused_args = list(self.__args)
 
+            nb_args = len(self.__args)
+            for i, arg in enumerate(args):
+                if i < nb_args:
+                    expected = self.__args[i]
+
+                    if isinstance(expected, Mock.ParameterMatcher):
+                        if not expected.validate(arg):
+                            return False
+                    elif arg != expected:
+                        return False
+
+                    unused_args.remove(expected)
+                else:
+                    args_to_check_in_kwargs.append(arg)
+
+            unmatched_kwargs = []
+            for key, arg in kwargs.items():
+                if key not in self.__kwargs:
+                    if arg is None:
+                        continue
+
+                    if arg in unused_args:
+                        unused_args.remove(arg)
+                    else:
+                        unmatched_kwargs.append(arg)
+
+                expected = self.__kwargs.get(key)
                 if isinstance(expected, Mock.ParameterMatcher):
                     if not expected.validate(arg):
                         return False
+
                 elif arg != expected:
                     return False
 
-            for key, arg in kwargs.items():
-                if key not in self.__kwargs and arg is None:
-                    continue
-
-                expected = self.__kwargs[key]
-                if isinstance(expected, Mock.ParameterMatcher):
-                    if not expected.validate(arg):
-                        return False
-                elif arg != self.__kwargs[key]:
+            for arg in args_to_check_in_kwargs:
+                if arg in unmatched_kwargs:
+                    unmatched_kwargs.remove(arg)
+                else:
                     return False
 
-            return True
+            return args_to_check_in_kwargs == []
 
         def _execute(self):
             if not self._allowed():

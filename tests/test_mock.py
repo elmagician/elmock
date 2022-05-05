@@ -58,7 +58,9 @@ class TestMock:
             mocked.on("test_smtg", "val", kp1=True).returns("This is a test")
             assert mocked.test_smtg("val", True) == "This is a test"
 
-            mocked.on("test_smtg", "error", kp1=False).raises(Exception("This is a test"))
+            mocked.on("test_smtg", "error", kp1=False).raises(
+                Exception("This is a test")
+            )
             with pytest.raises(Exception):
                 mocked.test_smtg("error", False)
 
@@ -150,3 +152,166 @@ class TestMock:
             with pytest.raises(UnexpectedArguments):
                 mocked.test_no_return("test", "fun")
             assert mocked_call.called() is False
+
+        def test_should_not_match_invalid_kwargs_as_args(self):
+            mocked.on("test_smtg", "test", kp1="test")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg("test", "testa")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg("test", kp1="testa")
+
+        def test_should_not_match_invalid_args_as_kwargs(self):
+            mocked.on("test_smtg", "test", kp1="test")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg(p1="testa", kp1="test")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg("testa", kp1="test")
+
+    class TestNonAbsoluteParameters:
+        class TestInArgs:
+            def test_ANY_should_match_anything(self):
+                mocked_call = mocked.on("test_smtg", Mock.ANY, kp1="test")
+
+                mocked.test_smtg("test", "test")
+                mocked.test_smtg(124, "test")
+                mocked.test_smtg({"blah": "test"}, "test")
+                mocked.test_smtg(True, "test")
+                mocked.test_smtg({1, 2, 5}, "test")
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+            def test_AnyTyped_should_match_provided_types(self):
+                mocked_call = mocked.on(
+                    "test_smtg", Mock.AnyTyped((str, dict)), kp1="test"
+                )
+
+                mocked.test_smtg("test", "test")
+                mocked.test_smtg({"blah": "test"}, "test")
+
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg(124, "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg(True, "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg({1, 2, 5}, "test")
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+            def test_AnyStrMatching_should_match_any_str_matching_pattern(self):
+                mocked_call = mocked.on(
+                    "test_smtg", Mock.AnyStrMatching(r"[1-4]49[0-9].*"), kp1="test"
+                )
+
+                mocked.test_smtg("3495abnug", "test")
+                mocked.test_smtg(3495, "test")
+
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg(124, "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg(True, "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("a1490", "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("1590", "test")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg({1, 2, 5}, "test")
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+        class TestInKwArgs:
+            def test_ANY_should_match_anything(self):
+                mocked_call = mocked.on("test_smtg", "test", kp1=Mock.ANY)
+
+                mocked.test_smtg("test", "test")
+                mocked.test_smtg("test", 124)
+                mocked.test_smtg("test", {"blah": "test"})
+                mocked.test_smtg("test", True)
+                mocked.test_smtg("test", {1, 2, 5})
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+            def test_AnyTyped_should_match_provided_types(self):
+                mocked_call = mocked.on(
+                    "test_smtg", "test", kp1=Mock.AnyTyped((str, dict))
+                )
+
+                mocked.test_smtg("test", "test")
+                mocked.test_smtg("test", {"blah": "test"})
+
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", 124)
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", True)
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", {1, 2, 5})
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+            def test_AnyStrMatching_should_match_any_str_matching_pattern(self):
+                mocked_call = mocked.on(
+                    "test_smtg", "test", kp1=Mock.AnyStrMatching(r"[1-4]49[0-9].*")
+                )
+
+                mocked.test_smtg("test", "3495abnug")
+                mocked.test_smtg("test", 3495)
+
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", 124)
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", True)
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", "a1490")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", "1590")
+                with pytest.raises(UnexpectedArguments):
+                    mocked.test_smtg("test", {1, 2, 5})
+
+                assert mocked_call.called()
+                assert mocked_call.full_filled()
+                mocked.reset()
+
+    class TestSpecialCases:
+        def test_should_match_kwargs_passed_as_args(self):
+            mocked_call = mocked.on("test_smtg", "test", kp1="test")
+
+            mocked.test_smtg("test", "test")
+
+            assert mocked_call.called()
+            assert mocked_call.full_filled()
+            mocked.reset()
+
+            mocked_call = mocked.on("test_smtg", "test", "test")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg("test", "test")
+
+            mocked.reset()
+
+            mocked_call = mocked.on("test_smtg", p1="test", kp1="test")
+
+            with pytest.raises(UnexpectedArguments):
+                mocked.test_smtg("test", "test")
+
+            mocked.reset()
+
+        def test_should_match_args_passed_as_kwargs(self):
+            mocked_call = mocked.on("test_smtg", "test", kp1="test")
+
+            mocked.test_smtg(p1="test", kp1="test")
+
+            assert mocked_call.called()
+            assert mocked_call.full_filled()
