@@ -73,6 +73,22 @@ class TestMock:
             assert mocked_call.called()
             assert mocked_call.full_filled()
 
+        def test_should_be_chainable(self):
+            expected = Exception("test")
+
+            (
+                mocked.on("test_no_args_no_return")
+                .raises(expected)
+                .on("test_smtg", "error", kp1="ok")
+                .on("test_smtg", "nother", kp1=True)
+            )
+
+            with pytest.raises(Exception):
+                mocked.test_no_args_no_return()
+
+            mocked.test_smtg("error", "ok")
+            mocked.test_smtg("nother", kp1=True)
+
     class TestRepeatControl:
         def test_should_limit_once(self):
             mocked_call = mocked.on("test_no_args_no_return").once()

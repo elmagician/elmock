@@ -1,15 +1,11 @@
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Pattern, Tuple
+from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, Union
 
 from pydantic import BaseModel
 
-from .exception import (
-    NotFullFilled,
-    UnexpectedArguments,
-    UnexpectedCall,
-    UnexpectedMethod,
-)
+from .exception import (NotFullFilled, UnexpectedArguments, UnexpectedCall,
+                        UnexpectedMethod)
 
 
 class Mock:
@@ -38,7 +34,7 @@ class Mock:
         return type("AnyTyped", (Mock.ParameterMatcher,), {"validate": validate})()
 
     @staticmethod
-    def AnyStrMatching(regex: str | Pattern) -> ParameterMatcher:
+    def AnyStrMatching(regex: Union[str, Pattern]) -> ParameterMatcher:
         @staticmethod  # type: ignore
         def validate(parameter: Any) -> bool:
             return re.match(regex, str(parameter)) is not None
@@ -61,7 +57,7 @@ class Mock:
         __infinite_calls = -1
         __no_calls = 0
 
-        def __init__(self, method: str, *args, **kwargs):
+        def __init__(self, method: str, mock_src: Type["Mock"], *args, **kwargs):
             self.__method: str = method
             self.__args: Tuple = args
             self.__kwargs: Dict = kwargs
@@ -71,6 +67,16 @@ class Mock:
 
             self.__nb_calls: int = 0
             self.__calls_expected: int = Mock.Call.__infinite_calls
+
+            self.__origin = mock_src
+
+        def on(self, method: str, *args, **kwargs) -> "Mock.Call":
+            """
+            Allow to chain mock calls.
+            See `Mock.on` for full documentation.
+            """
+
+            return self.__origin.on(method, *args, **kwargs)
 
         def once(self):
             """
@@ -246,7 +252,7 @@ class Mock:
         if method not in cls.__calls:
             cls.__calls[method] = []
 
-        call = cls.Call(method, *args, **kwargs)
+        call = cls.Call(method, cls, *args, **kwargs)
         cls.__calls[method].append(call)
 
         return call
