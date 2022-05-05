@@ -237,7 +237,7 @@ class Mock:
 
             return self.__return_value
 
-    __calls: dict[str, List[Call]] = {}
+    __calls: Dict[str, List[Call]] = {}
 
     @classmethod
     def on(cls, method: str, *args, **kwargs) -> Call:
