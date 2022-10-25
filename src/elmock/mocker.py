@@ -57,14 +57,14 @@ class Mock:
         """
         __infinite_calls = -1
         __no_calls = 0
-        __after: str | None = None
+        __after: Union[str, None] = None
 
         def __init__(
             self,
             method: str,
             mock_src: Type["Mock"],
             *args,
-            after: str | None = None,
+            after: Union[str, None] = None,
             **kwargs
         ):
             self.__method: str = method
@@ -80,6 +80,7 @@ class Mock:
             self.__origin = mock_src
             self._id = ShortUUID().uuid()
             self.__after = after
+            self._on_same_method = False
 
         def on(self, method: str, *args, **kwargs) -> "Mock.Call":
             """
@@ -173,13 +174,16 @@ class Mock:
                 or self.__nb_calls == self.__calls_expected
             )
 
-        def before(self, method: str, *args, **kwargs) -> "Mock.Call":
+        def before(
+            self, method: str, *args, on_same_method: bool = False, **kwargs
+        ) -> "Mock.Call":
             """
             Ensure call is made before another on similar method
             """
 
             call = self.__origin.on(method, *args, **kwargs)
             call.__after = self._id
+            call._on_same_method = on_same_method
 
             return call
 
@@ -192,7 +196,7 @@ class Mock:
                 expected=self.__calls_expected,
             )
 
-        def _allowed(self, latest_call_id: str | None) -> bool:
+        def _allowed(self, latest_call_id: Union[str, None]) -> bool:
             return (
                 self.__calls_expected == self.__infinite_calls
                 or self.__nb_calls < self.__calls_expected
@@ -247,7 +251,7 @@ class Mock:
 
             return args_to_check_in_kwargs == []
 
-        def _execute(self, latest_call_id: str | None):
+        def _execute(self, latest_call_id: Union[str, None]):
             if not self._allowed(latest_call_id):
                 raise UnexpectedCall(
                     self.__method,
@@ -266,6 +270,7 @@ class Mock:
 
     __calls: Dict[str, List[Call]] = {}
     __latest_called: List[str] = []
+    __latest_called_per_method: Dict[str, str] = {}
 
     @classmethod
     def on(cls, method: str, *args, **kwargs) -> Call:
@@ -304,7 +309,13 @@ class Mock:
         for mock_call in known_mocks:
             if mock_call._match(method, args, kwargs):
                 last_known = mock_call
-                if mock_call._allowed(cls.__latest_called[-1] if cls.__latest_called else None):
+
+                if mock_call._on_same_method:
+                    latest_id = cls.__latest_called_per_method.get(method)
+                else:
+                    latest_id = cls.__latest_called[-1] if cls.__latest_called else None
+
+                if mock_call._allowed(latest_id):
                     return mock_call
 
         if last_known is not None:
@@ -324,8 +335,17 @@ class Mock:
         :raises Exception: mocked Exception to return if provided
         """
         call = cls.__retrieve_call(method, args, kwargs)
-        res = call._execute(cls.__latest_called[-1] if cls.__latest_called else None)
+
+        if call._on_same_method:
+            latest_id = cls.__latest_called_per_method.get(method)
+        else:
+            latest_id = cls.__latest_called[-1] if cls.__latest_called else None
+
+        res = call._execute(latest_id)
+
         cls.__latest_called.append(call._id)
+        cls.__latest_called_per_method[method] = call._id
+
         return res
 
     @classmethod
