@@ -1,4 +1,4 @@
-name: audit 3.8
+name: audit 3.10
 on:
   push:
     branches:
@@ -25,7 +25,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v3
         with:
-          python-version: "3.8"
+          python-version: "3.10"
 
       - uses: syphar/restore-virtualenv@v1
         id: cache-virtualenv
@@ -58,7 +58,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.10"
 
       - name: restore dependencies
         uses: syphar/restore-virtualenv@v1
@@ -85,7 +85,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.10"
 
       - name: restore dependencies
         uses: syphar/restore-virtualenv@v1
@@ -113,7 +113,7 @@ jobs:
       - name: setup python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.10"
 
       - name: restore dependencies
         uses: syphar/restore-virtualenv@v1

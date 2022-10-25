@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, Union
 
 from pydantic import BaseModel
+from shortuuid import ShortUUID  # type: ignore
 
 from .exception import (NotFullFilled, UnexpectedArguments, UnexpectedCall,
                         UnexpectedMethod)
@@ -69,6 +70,7 @@ class Mock:
             self.__calls_expected: int = Mock.Call.__infinite_calls
 
             self.__origin = mock_src
+            self.__id = ShortUUID()
 
         def on(self, method: str, *args, **kwargs) -> "Mock.Call":
             """
@@ -161,6 +163,13 @@ class Mock:
                 and self.called
                 or self.__nb_calls == self.__calls_expected
             )
+
+        # def before(self) -> "Mock.Call":
+        #     """
+        #     Ensure call is made before another on similar method
+        #     """
+
+        #     ...
 
         def _not_full_filled(self) -> NotFullFilled:
             return self.NotFullFilled(

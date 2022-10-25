@@ -41,7 +41,7 @@ test:
 
 lint:
 	flake8 src tests
-	mypy src
+	mypy --install-types src
 
 cover:
 	coverage run --source=src -m pytest -xv .

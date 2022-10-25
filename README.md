@@ -1,6 +1,6 @@
 # elmock
 
-![CI Status](https://github.com/elmagician/elmock/actions/workflows/main.yaml/badge.svg?branch=main)
+![CI Status](https://github.com/elmagician/elmock/actions/workflows/3.10.yaml/badge.svg?branch=main)
 [![Coverage Status](https://coveralls.io/repos/github/elmagician/elmock/badge.svg?branch=main)](https://coveralls.io/github/elmagician/elmock?branch=main)
 [![PyPI version](https://badge.fury.io/py/elmock.svg)](https://badge.fury.io/py/elmock)
 
