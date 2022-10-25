@@ -5,8 +5,12 @@ from typing import Any, Dict, List, Optional, Pattern, Tuple, Type, Union
 from pydantic import BaseModel
 from shortuuid import ShortUUID  # type: ignore
 
-from .exception import (NotFullFilled, UnexpectedArguments, UnexpectedCall,
-                        UnexpectedMethod)
+from .exception import (
+    NotFullFilled,
+    UnexpectedArguments,
+    UnexpectedCall,
+    UnexpectedMethod,
+)
 
 
 class Mock:
@@ -80,6 +84,7 @@ class Mock:
             self.__origin = mock_src
             self._id = ShortUUID().uuid()
             self.__after = after
+            self._on_same_method = False
 
         def on(self, method: str, *args, **kwargs) -> "Mock.Call":
             """
@@ -173,13 +178,16 @@ class Mock:
                 or self.__nb_calls == self.__calls_expected
             )
 
-        def before(self, method: str, *args, **kwargs) -> "Mock.Call":
+        def before(
+            self, method: str, *args, on_same_method: bool = False, **kwargs
+        ) -> "Mock.Call":
             """
             Ensure call is made before another on similar method
             """
 
             call = self.__origin.on(method, *args, **kwargs)
             call.__after = self._id
+            call._on_same_method = on_same_method
 
             return call
 
@@ -266,6 +274,7 @@ class Mock:
 
     __calls: Dict[str, List[Call]] = {}
     __latest_called: List[str] = []
+    __latest_called_per_method: Dict[str, str] = {}
 
     @classmethod
     def on(cls, method: str, *args, **kwargs) -> Call:
@@ -304,7 +313,13 @@ class Mock:
         for mock_call in known_mocks:
             if mock_call._match(method, args, kwargs):
                 last_known = mock_call
-                if mock_call._allowed(cls.__latest_called[-1] if cls.__latest_called else None):
+
+                if mock_call._on_same_method:
+                    latest_id = cls.__latest_called_per_method.get(method)
+                else:
+                    latest_id = cls.__latest_called[-1] if cls.__latest_called else None
+
+                if mock_call._allowed(latest_id):
                     return mock_call
 
         if last_known is not None:
@@ -324,8 +339,17 @@ class Mock:
         :raises Exception: mocked Exception to return if provided
         """
         call = cls.__retrieve_call(method, args, kwargs)
-        res = call._execute(cls.__latest_called[-1] if cls.__latest_called else None)
+
+        if call._on_same_method:
+            latest_id = cls.__latest_called_per_method.get(method)
+        else:
+            latest_id = cls.__latest_called[-1] if cls.__latest_called else None
+
+        res = call._execute(latest_id)
+
         cls.__latest_called.append(call._id)
+        cls.__latest_called_per_method[method] = call._id
+
         return res
 
     @classmethod
