@@ -117,8 +117,9 @@ def __cleanup_mocks(tmpdir):
 from typing import Any
 
 import pytest
+
 from src.elmock import Mock, UnexpectedMethod
-from src.elmock.exception import (NotFullFilled,    UnexpectedArguments, UnexpectedCall)
+from src.elmock.exception import NotFullFilled, UnexpectedArguments, UnexpectedCall
 
 
 class Mocker(Mock):
@@ -193,15 +194,14 @@ class TestMock:
             expected = Exception("test")
 
             (
-                mocked.on("test_no_args_no_return").raises(expected)
+                mocked.on("test_no_args_no_return")
+                .raises(expected)
                 .on("test_smtg", "error", kp1="ok")
                 .on("test_smtg", "nother", kp1=True)
             )
-            
 
             with pytest.raises(Exception):
                 mocked.test_no_args_no_return()
-
 
             mocked.test_smtg("error", "ok")
             mocked.test_smtg("nother", kp1=True)
@@ -303,6 +303,63 @@ class TestMock:
 
             with pytest.raises(UnexpectedArguments):
                 mocked.test_smtg("testa", kp1="test")
+
+    class TestCallLinks:
+        def test_should_allowed_linked_calls(self):
+            (
+                mocked.on("test_no_args")
+                .returns("Sparta")
+                .before("test_no_args_no_return")
+                .before("test_smtg", "a", kp1="b")
+                .returns("Twice")
+                .before("test_smtg", "c")
+                .returns("Last")
+            )
+
+            assert mocked.test_no_args() == "Sparta"
+            mocked.test_no_args_no_return()
+            assert mocked.test_smtg("a", "b") == "Twice"
+            assert mocked.test_smtg("c") == "Last"
+
+        def test_should_not_allow_linked_call_if_ancestor_is_invalid(self):
+            (
+                mocked.on("test_no_args")
+                .returns("Sparta")
+                .before("test_no_args_no_return")
+                .before("test_smtg", "a", kp1="b")
+                .returns("Twice")
+                .before("test_smtg", "c")
+                .returns("Last")
+            )
+
+            with pytest.raises(UnexpectedCall):
+                mocked.test_no_args_no_return()
+
+            with pytest.raises(UnexpectedCall):
+                mocked.test_smtg("a", "b")
+
+            with pytest.raises(UnexpectedCall):
+                assert mocked.test_no_args() == "Sparta"
+                mocked.test_smtg("a", "b")
+
+            with pytest.raises(UnexpectedCall):
+                assert mocked.test_no_args() == "Sparta"
+                mocked.test_smtg("c")
+
+            with pytest.raises(UnexpectedCall):
+                (
+                    mocked.on("test_no_args")
+                    .returns("Sparta")
+                    .before("test_no_args_no_return")
+                    .before("test_smtg", "a", kp1="b")
+                    .returns("Twice")
+                    .before("test_smtg", "c")
+                    .returns("Last")
+                )
+
+                assert mocked.test_no_args() == "Sparta"
+                mocked.test_no_args_no_return()
+                assert mocked.test_smtg("c") == "Last"
 
     class TestNonAbsoluteParameters:
         class TestInArgs:
@@ -448,4 +505,5 @@ class TestMock:
 
             assert mocked_call.called()
             assert mocked_call.full_filled()
+
 ```

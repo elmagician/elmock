@@ -57,8 +57,16 @@ class Mock:
         """
         __infinite_calls = -1
         __no_calls = 0
+        __after: str | None = None
 
-        def __init__(self, method: str, mock_src: Type["Mock"], *args, **kwargs):
+        def __init__(
+            self,
+            method: str,
+            mock_src: Type["Mock"],
+            *args,
+            after: str | None = None,
+            **kwargs
+        ):
             self.__method: str = method
             self.__args: Tuple = args
             self.__kwargs: Dict = kwargs
@@ -70,7 +78,8 @@ class Mock:
             self.__calls_expected: int = Mock.Call.__infinite_calls
 
             self.__origin = mock_src
-            self.__id = ShortUUID()
+            self._id = ShortUUID().uuid()
+            self.__after = after
 
         def on(self, method: str, *args, **kwargs) -> "Mock.Call":
             """
@@ -164,12 +173,15 @@ class Mock:
                 or self.__nb_calls == self.__calls_expected
             )
 
-        # def before(self) -> "Mock.Call":
-        #     """
-        #     Ensure call is made before another on similar method
-        #     """
+        def before(self, method: str, *args, **kwargs) -> "Mock.Call":
+            """
+            Ensure call is made before another on similar method
+            """
 
-        #     ...
+            call = self.__origin.on(method, *args, **kwargs)
+            call.__after = self._id
+
+            return call
 
         def _not_full_filled(self) -> NotFullFilled:
             return self.NotFullFilled(
@@ -180,11 +192,11 @@ class Mock:
                 expected=self.__calls_expected,
             )
 
-        def _allowed(self) -> bool:
+        def _allowed(self, latest_call_id: str | None) -> bool:
             return (
                 self.__calls_expected == self.__infinite_calls
                 or self.__nb_calls < self.__calls_expected
-            )
+            ) and (self.__after is None or latest_call_id == self.__after)
 
         def _match(self, method: str, args: Tuple, kwargs: dict) -> bool:
             if not self.__method == method:  # pragma: no-cover
@@ -235,9 +247,15 @@ class Mock:
 
             return args_to_check_in_kwargs == []
 
-        def _execute(self):
-            if not self._allowed():
-                raise UnexpectedCall(self.__method, *self.__args, **self.__kwargs)
+        def _execute(self, latest_call_id: str | None):
+            if not self._allowed(latest_call_id):
+                raise UnexpectedCall(
+                    self.__method,
+                    latest_call_id,
+                    self.__after,
+                    *self.__args,
+                    **self.__kwargs
+                )
 
             self.__nb_calls += 1
 
@@ -247,6 +265,7 @@ class Mock:
             return self.__return_value
 
     __calls: Dict[str, List[Call]] = {}
+    __latest_called: List[str] = []
 
     @classmethod
     def on(cls, method: str, *args, **kwargs) -> Call:
@@ -272,6 +291,7 @@ class Mock:
         Reset mock data to avoid border effects.
         """
         cls.__calls = {}
+        cls.__latest_called = []
 
     @classmethod
     def __retrieve_call(cls, method: str, args: Tuple, kwargs: dict) -> Call:
@@ -284,7 +304,7 @@ class Mock:
         for mock_call in known_mocks:
             if mock_call._match(method, args, kwargs):
                 last_known = mock_call
-                if mock_call._allowed():
+                if mock_call._allowed(cls.__latest_called[-1] if cls.__latest_called else None):
                     return mock_call
 
         if last_known is not None:
@@ -304,7 +324,9 @@ class Mock:
         :raises Exception: mocked Exception to return if provided
         """
         call = cls.__retrieve_call(method, args, kwargs)
-        return call._execute()
+        res = call._execute(cls.__latest_called[-1] if cls.__latest_called else None)
+        cls.__latest_called.append(call._id)
+        return res
 
     @classmethod
     def assert_full_filled(cls) -> None:

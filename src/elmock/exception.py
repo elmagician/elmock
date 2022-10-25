@@ -11,10 +11,19 @@ class UnexpectedArguments(Exception):
 
 
 class UnexpectedCall(Exception):
-    def __init__(self, method: str, *args, **kwargs):
+    def __init__(
+        self,
+        method: str,
+        latest_call_id: str | None,
+        after: str | None,
+        *args,
+        **kwargs,
+    ):
         self.message = (
             f"Call to method {method} with arguments {args}, {kwargs} was not expected"
         )
+        if latest_call_id != after:
+            self.message += ". Broken linked called."
 
 
 class NotFullFilled(Exception):
