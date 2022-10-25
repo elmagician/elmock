@@ -1,4 +1,4 @@
-name: py3.8
+name: audit 3.8
 on:
   push:
     branches:
@@ -11,10 +11,47 @@ on:
       - "**.md"
 
 jobs:
+  setup:
+    name: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+      - name: checkout
+        uses: actions/checkout@v3
+
+      - name: setup python
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.8"
+
+      - uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: setup.*
+
+      - uses: syphar/restore-pip-download-cache@v1
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+        with:
+          requirement_files: setup.*
+
+      - name: install dependencies
+        if: steps.cache-virtualenv.outputs.cache-hit != 'true'
+        run: make install_dev
+
   lint:
+    needs:
+      - setup
     name: lint
     runs-on: ubuntu-latest
     steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
       - name: checkout
         uses: actions/checkout@v2
 
@@ -23,16 +60,25 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: install dependencies
-        run: make install_dev
+      - name: restore dependencies
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: setup.*
 
       - name: lint
         run: make lint
 
   security:
+    needs:
+      - setup
     name: security
     runs-on: ubuntu-latest
     steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
       - name: checkout
         uses: actions/checkout@v2
 
@@ -41,16 +87,26 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: install dependencies
-        run: make install_dev
+      - name: restore dependencies
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: setup.*
 
       - name: bandit
         run: make bandit-ci
 
   test:
+    needs:
+      - security
+      - lint
     name: tests
     runs-on: ubuntu-latest
     steps:
+      - name: cancel previous runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
       - name: checkout
         uses: actions/checkout@v2
 
@@ -59,8 +115,18 @@ jobs:
         with:
           python-version: "3.8"
 
-      - name: install dependencies
-        run: make install_dev
+      - name: restore dependencies
+        uses: syphar/restore-virtualenv@v1
+        id: cache-virtualenv
+        with:
+          requirement_files: setup.*
 
       - name: testing
         run: make cover
+
+      - name: Coveralls
+        uses: AndreMiras/coveralls-python-action@v20201129
+        with:
+          github-token: ${{ secrets.COVERALLS_REPO_TOKEN }}
+          parallel: false
+          flag-name: Unit Test
